@@ -35,9 +35,6 @@ Depends: ${misc:Depends},
          setserial,
          squashfs-tools,
          util-linux,
-         sqlite3,
-         dosfstools,
-         efibootmgr,
-         grub-efi
+         sqlite3
 Description: TrueNAS Installer
  TrueNAS Installer
