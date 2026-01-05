@@ -1,7 +1,7 @@
 import asyncio
 import os
 import subprocess
-
+from .logger import logger
 __all__ = ["GiB", "get_partitions", "run"]
 
 GiB = 1024 ** 3
@@ -78,6 +78,7 @@ async def get_partitions(
 
 
 async def run(args, check=True):
+    logger.debug(" ".join(args))
     process = await asyncio.create_subprocess_exec(*args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = await process.communicate()
 
