@@ -27,13 +27,10 @@ Depends: ${misc:Depends},
          zfs-initramfs,
          linux-headers-amd64,
          parted,
-         python3-aiohttp-rpc,
          python3-jsonschema,
          python3-licenselib,
          python3-humanfriendly,
          python3-pyroute2,
-         python3-truenas-connect-utils,
-
          squashfs-tools,
          util-linux,
          sqlite3
