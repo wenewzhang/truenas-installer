@@ -5,13 +5,11 @@ Maintainer: Vladimir Vinogradenko <vladimirv@ixsystems.com>
 Build-Depends: debhelper-compat (= 12),
                dh-python,
                python3-all,
-               python3-aiohttp-rpc,
                python3-jsonschema,
                python3-licenselib,
                python3-humanfriendly,
                python3-pyroute2,
-               python3-setuptools,
-               python3-truenas-connect-utils
+               python3-setuptools
 Standards-Version: 4.4.0
 
 Package: python3-truenas-installer
