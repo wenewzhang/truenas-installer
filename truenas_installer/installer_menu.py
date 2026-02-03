@@ -13,6 +13,7 @@ from .dialog import (
 )
 from .disks import Disk, list_disks
 from .exception import InstallError
+from .i18n import _, LANGUAGES, set_language, get_language, get_language_name
 from .install import install
 
 
@@ -25,14 +26,35 @@ class InstallerMenu:
 
     async def _main_menu(self):
         await dialog_menu(
-            f"{self.installer.vendor} {self.installer.version} Console Setup",
+            _("title_console_setup", vendor=self.installer.vendor, version=self.installer.version),
             {
-                "Install/Upgrade": self._install_upgrade,
-                "Shell": self._shell,
-                "Reboot System": self._reboot,
-                "Shutdown System": self._shutdown,
+                _("menu_install_upgrade"): self._install_upgrade,
+                _("menu_shell"): self._shell,
+                _("menu_reboot"): self._reboot,
+                _("menu_shutdown"): self._shutdown,
+                _("menu_language"): self._select_language,
             },
         )
+
+    async def _select_language(self):
+        """Show language selection menu."""
+        language_items = {
+            code: name for code, name in LANGUAGES.items()
+        }
+        
+        selected_lang = await dialog_menu(
+            _("title_language_select"),
+            language_items,
+            cancel_label=_("menu_shell") if get_language() == "zh" else None,  # Use Shell as cancel for Chinese
+        )
+        
+        if selected_lang:
+            set_language(selected_lang)
+            # Return to main menu with new language
+            await self._main_menu()
+        else:
+            # User cancelled, return to main menu
+            await self._main_menu()
 
     async def _install_upgrade(self):
         while True:
@@ -44,17 +66,16 @@ class InstallerMenu:
         vendor = self.installer.vendor
 
         if not disks:
-            await dialog_msgbox("Choose Destination Media", "No drives available")
+            await dialog_msgbox(
+                _("title_destination_media"),
+                _("msg_no_drives")
+            )
             return False
 
         while True:
             destination_disks = await dialog_checklist(
-                "Choose Destination Media",
-                (
-                    f"Install {vendor} to a drive. If desired, select multiple drives to provide redundancy. {vendor} "
-                    "installation drive(s) are not available for use in storage pools. Use arrow keys to navigate "
-                    "options. Press spacebar to select."
-                ),
+                _("title_destination_media"),
+                _("msg_select_disk", vendor=vendor),
                 {
                     disk.name: " ".join(
                         [
@@ -74,8 +95,8 @@ class InstallerMenu:
 
             if not destination_disks:
                 await dialog_msgbox(
-                    "Choose Destination Media",
-                    "Select at least one disk to proceed with the installation.",
+                    _("title_destination_media"),
+                    _("msg_select_at_least_one_disk"),
                 )
                 continue
 
@@ -92,44 +113,32 @@ class InstallerMenu:
             ]
             if wipe_disks:
                 # The presence of multiple `boot-pool` disks with different guids leads to boot pool import error
-                text = "\n".join(
-                    [
-                        f"Disk(s) {', '.join(wipe_disks)} contain existing TrueNAS boot pool, but they were not "
-                        f"selected for TrueNAS installation. This configuration will not work unless these disks "
-                        "are erased.",
-                        "",
-                        f"Proceed with erasing {', '.join(wipe_disks)}?",
-                    ]
+                text = _(
+                    "msg_boot_pool_exists",
+                    disks=", ".join(wipe_disks)
                 )
-                if not await dialog_yesno("TrueNAS Installation", text):
+                if not await dialog_yesno(_("title_installation", vendor=vendor), text):
                     continue
 
             break
 
-        text = "\n".join(
-            [
-                "WARNING:",
-                f"- This erases ALL partitions and data on {', '.join(sorted(wipe_disks + destination_disks))}.",
-                f"- {', '.join(destination_disks)} will be unavailable for use in storage pools.",
-                "",
-                "NOTE:",
-                "- Installing on SATA, SAS, or NVMe flash media is recommended.",
-                "  USB flash sticks are discouraged.",
-                "",
-                "Proceed with the installation?",
-            ]
+        all_disks = sorted(wipe_disks + destination_disks)
+        text = _(
+            "msg_install_warning",
+            disks=", ".join(all_disks),
+            dest_disks=", ".join(destination_disks)
         )
-        if not await dialog_yesno(f"{self.installer.vendor} Installation", text):
+        if not await dialog_yesno(_("title_installation", vendor=vendor), text):
             return False
 
         if vendor == "HexOS":
             authentication_method = await self._authentication_truenas_admin()
         else:
             authentication_method = await dialog_menu(
-                "Web UI Authentication Method",
+                _("title_auth_method"),
                 {
-                    "Administrative user (truenas_admin)": self._authentication_truenas_admin,
-                    "Configure using Web UI": self._authentication_webui,
+                    _("label_admin_user"): self._authentication_truenas_admin,
+                    _("label_webui_auth"): self._authentication_webui,
                 },
             )
             if authentication_method is False:
@@ -138,11 +147,8 @@ class InstallerMenu:
         set_pmbr = False
         if not self.installer.efi:
             set_pmbr = await dialog_yesno(
-                "Legacy Boot",
-                (
-                    "Allow EFI boot? Enter Yes for systems with newer components such as NVMe devices. Enter No when "
-                    "system hardware requires legacy BIOS boot workaround."
-                ),
+                _("title_legacy_boot"),
+                _("msg_legacy_boot"),
             )
 
         sql = ""
@@ -158,14 +164,15 @@ class InstallerMenu:
                 self._callback,
             )
         except InstallError as e:
-            await dialog_msgbox("Installation Error", e.message)
+            await dialog_msgbox(_("title_installation_error"), e.message)
             return False
 
         await dialog_msgbox(
-            "Installation Succeeded",
-            (
-                f"The {self.installer.vendor} installation on {', '.join(destination_disks)} succeeded!\n"
-                "Please reboot and remove the installation media."
+            _("title_installation_success"),
+            _(
+                "msg_install_success",
+                vendor=vendor,
+                disks=", ".join(destination_disks)
             ),
         )
         return True
@@ -177,7 +184,7 @@ class InstallerMenu:
     async def _authentication_truenas_admin(self):
         return await self._authentication_password(
             "truenas_admin",
-            'Enter your "truenas_admin" user password. Root password login will be disabled.',
+            _("msg_password_prompt", user="truenas_admin"),
         )
 
     async def _authentication_password(self, username, title):

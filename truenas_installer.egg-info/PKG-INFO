@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: truenas_installer
+Version: 1.0
+Summary: TrueNAS installer
+License: GNU3
+Dynamic: license
+Dynamic: summary

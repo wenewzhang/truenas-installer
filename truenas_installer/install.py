@@ -7,6 +7,7 @@ from typing import Callable
 
 from .disks import Disk
 from .exception import InstallError
+from .i18n import _
 from .lock import installation_lock
 from .logger import logger
 from .utils import get_partitions, run
@@ -24,11 +25,11 @@ async def install(destination_disks: list[Disk], wipe_disks: list[Disk], set_pmb
                 await run(["zgenhostid"])
 
             for disk in destination_disks:
-                callback(0, f"Formatting disk {disk.name}")
+                callback(0, _("progress_formatting_disk", disk=disk.name))
                 await format_disk(disk, set_pmbr, callback)
 
             for disk in wipe_disks:
-                callback(0, f"Wiping disk {disk.name}")
+                callback(0, _("progress_wiping_disk", disk=disk.name))
                 await wipe_disk(disk, callback)
 
             disk_parts = list()
@@ -36,11 +37,11 @@ async def install(destination_disks: list[Disk], wipe_disks: list[Disk], set_pmb
             for disk in destination_disks:
                 found = (await get_partitions(disk.device, [part_num]))[part_num]
                 if found is None:
-                    raise InstallError(f"Failed to find data partition on {disk.name}")
+                    raise InstallError(_("progress_failed_data_partition", disk=disk.name))
                 else:
                     disk_parts.append(found)
 
-            callback(0, "Creating boot pool")
+            callback(0, _("progress_creating_boot_pool"))
             await create_boot_pool(disk_parts)
             try:
                 await run_installer(
@@ -53,18 +54,18 @@ async def install(destination_disks: list[Disk], wipe_disks: list[Disk], set_pmb
             finally:
                 await run(["zpool", "export", "-f", BOOT_POOL])
         except subprocess.CalledProcessError as e:
-            raise InstallError(f"Command {' '.join(e.cmd)} failed:\n{e.stderr.rstrip()}")
+            raise InstallError(_("error_command_failed", cmd=" ".join(e.cmd), error=e.stderr.rstrip()))
 
 
 async def wipe_disk(disk: Disk, callback: Callable):
     for zfs_member in disk.zfs_members:
         if (result := await run(["zpool", "labelclear", "-f", f"/dev/{zfs_member.name}"],
                                 check=False)).returncode != 0:
-            callback(0, f"Warning: unable to wipe ZFS label from {zfs_member.name}: {result.stderr.rstrip()}")
+            callback(0, _("progress_warning_zfs_wipe", device=zfs_member.name, error=result.stderr.rstrip()))
         pass
 
     if (result := await run(["wipefs", "-a", disk.device], check=False)).returncode != 0:
-        callback(0, f"Warning: unable to wipe partition table for {disk.name}: {result.stderr.rstrip()}")
+        callback(0, _("progress_warning_partition_wipe", disk=disk.name, error=result.stderr.rstrip()))
 
     await run(["sgdisk", "-Z", disk.device], check=False)
 
@@ -91,7 +92,7 @@ async def format_disk(disk: Disk, set_pmbr: bool, callback: Callable):
     disk_parts = await get_partitions(disk.device, [1, 2, 3], tries=30)
     for partnum, part_device in disk_parts.items():
         if part_device is None:
-            raise InstallError(f"Failed to find partition number {partnum} on {disk.name}")
+            raise InstallError(_("progress_failed_partition", num=partnum, disk=disk.name))
 
     if set_pmbr:
         await run(["parted", "-s", disk.device, "disk_set", "pmbr_boot", "on"], check=False)
@@ -173,6 +174,6 @@ async def run_installer(disks, authentication, post_install, sql, callback):
                 result = stderr
 
             if process.returncode != 0:
-                raise InstallError(result or f"Abnormal installer process termination with code {process.returncode}")
+                raise InstallError(result or _("error_abnormal_termination", code=process.returncode))
         finally:
             await run(["umount", "-f", src])

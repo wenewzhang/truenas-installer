@@ -6,6 +6,8 @@ import asyncio
 import subprocess
 import tempfile
 
+from .i18n import _
+
 __all__ = ["dialog", "dialog_checklist", "dialog_menu", "dialog_msgbox", "dialog_yesno"]
 
 
@@ -46,24 +48,42 @@ async def dialog_checklist(title, text, items):
         return None
 
 
-async def dialog_menu(title, items):
-    result = await dialog(
+async def dialog_menu(title, items, cancel_label=None):
+    """Show a menu dialog.
+    
+    Args:
+        title: The dialog title
+        items: Dictionary of menu items {label: callback/return_value}
+        cancel_label: Optional label for cancel button (for language switching)
+    
+    Returns:
+        The return value of the selected callback, or None if cancelled
+    """
+    args = [
+        "--clear",
+        "--title", title,
+        "--menu", "", "12", "73", "6"
+    ]
+    
+    if cancel_label:
+        args.extend(["--cancel-label", cancel_label])
+    
+    args += sum(
         [
-            "--clear",
-            "--title", title,
-            "--menu", "", "12", "73", "6"
-        ] +
-        sum(
-            [
-                [str(i), title]
-                for i, title in enumerate(items.keys(), start=1)
-            ],
-            [],
-        )
+            [str(i), item_title]
+            for i, item_title in enumerate(items.keys(), start=1)
+        ],
+        [],
     )
+    
+    result = await dialog(args)
 
     if result.returncode == 0:
-        return await list(items.values())[int(result.stderr) - 1]()
+        selected_value = list(items.values())[int(result.stderr) - 1]
+        # If the value is callable (a function), call it
+        if callable(selected_value):
+            return await selected_value()
+        return selected_value
     else:
         return None
 
@@ -103,8 +123,8 @@ async def dialog_password(title):
                             "--visit-items",
                             "--passwordform", title,
                             "10", "70", "0",
-                            "Password:", "1", "10", "", "0", "30", "25", "50",
-                            "Confirm Password:", "2", "10", "", "2", "30", "25", "50",
+                            _("label_password"), "1", "10", "", "0", "30", "25", "50",
+                            _("label_confirm_password"), "2", "10", "", "2", "30", "25", "50",
                         ]
                     ),
                     env=dict(os.environ, DIALOGRC=dialogrc.name),
@@ -116,10 +136,10 @@ async def dialog_password(title):
 
                 passwords = [p.strip() for p in output.read().splitlines()]
                 if len(passwords) != 2 or not passwords[0] or not passwords[1]:
-                    await dialog_msgbox("Error", "Empty passwords are not allowed.")
+                    await dialog_msgbox(_("title_error"), _("msg_password_empty"))
                     continue
                 elif passwords[0] != passwords[1]:
-                    await dialog_msgbox("Error", "Passwords do not match.")
+                    await dialog_msgbox(_("title_error"), _("msg_password_mismatch"))
                     continue
 
                 return passwords[0]

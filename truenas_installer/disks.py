@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import json
 import re
 
+from .i18n import _
 from .utils import run
 
 __all__ = ["list_disks"]
@@ -71,7 +72,7 @@ async def list_disks():
             Disk(
                 disk["name"],
                 disk["size"],
-                disk["model"] or "Unknown Model",
+                disk["model"] or _("label_unknown_model"),
                 label,
                 zfs_members,
                 disk["rm"]
