@@ -1,5 +1,7 @@
 import os
 
+from .logger import logger
+
 
 class Installer:
     def __init__(self, version, dmi, vendor, tn_model):
@@ -8,3 +10,4 @@ class Installer:
         self.efi = os.path.exists("/sys/firmware/efi")
         self.vendor = vendor
         self.tn_model = tn_model
+        logger.info(f"Installer initialized: vendor={vendor}, version={version}, efi={self.efi}")

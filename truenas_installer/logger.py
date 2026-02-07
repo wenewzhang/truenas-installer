@@ -5,7 +5,7 @@ import sys
 # 建议在 logger.py 顶层定义格式
 LOG_FORMAT = '%(asctime)s %(name)s[%(process)d]: %(levelname)s - %(message)s'
 
-def get_file_logger(name="zuti", log_file="/var/log/zuti-ti.log", level=logging.INFO):
+def get_file_logger(name="onenas-installer", log_file="/var/log/onenas-installer.log", level=logging.INFO):
     logger = logging.getLogger(name)
     if logger.handlers:
         return logger
@@ -36,4 +36,4 @@ def get_file_logger(name="zuti", log_file="/var/log/zuti-ti.log", level=logging.
     return logger
 
 # 在 logger.py 末尾直接初始化一个全局实例
-logger = get_file_logger(level=logging.DEBUG)
+logger = get_file_logger(name="onenas-installer", log_file="/var/log/onenas-installer.log", level=logging.DEBUG)

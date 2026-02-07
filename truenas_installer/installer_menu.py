@@ -17,6 +17,7 @@ from .disks import Disk, list_disks
 from .exception import InstallError
 from .install import install
 from .i18n import _, set_language, get_available_languages, get_language
+from .logger import logger
 
 
 class InstallerMenu:
@@ -28,6 +29,7 @@ class InstallerMenu:
 
     async def _main_menu(self):
         """显示主菜单"""
+        logger.info("Displaying main menu")
         # 使用 lambda 来确保每次菜单显示时都使用当前语言的翻译
         menu_items = {
             _("install_upgrade"): self._install_upgrade,
@@ -47,6 +49,7 @@ class InstallerMenu:
 
     async def _select_language(self):
         """语言选择菜单"""
+        logger.info("Displaying language selection menu")
         languages = get_available_languages()
         
         # 构建语言选择菜单项
@@ -83,10 +86,13 @@ class InstallerMenu:
             await self._main_menu()
 
     async def _install_upgrade_internal(self):
+        logger.info("Starting install/upgrade process")
         disks = await list_disks()
         vendor = self.installer.vendor
+        logger.info(f"Detected disks: {[d.name for d in disks]}")
 
         if not disks:
+            logger.warning("No drives detected")
             await dialog_msgbox(_("choose_destination"), _("no_drives"))
             return False
 
@@ -107,8 +113,12 @@ class InstallerMenu:
                 },
             )
 
+            if destination_disks is not None:
+                logger.info(f"User selected destination disks: {destination_disks}")
+
             if destination_disks is None:
                 # Installation cancelled
+                logger.info("Installation cancelled by user")
                 return False
 
             if not destination_disks:
@@ -156,6 +166,7 @@ class InstallerMenu:
             ]
         )
         if not await dialog_yesno(_("installation", vendor=self.installer.vendor), text):
+            logger.info("Installation cancelled by user at confirmation dialog")
             return False
 
         # 根据 disk 大小，让用户选择分区方式
@@ -225,12 +236,15 @@ class InstallerMenu:
         # system_partition_percentage: 系统分区占用的百分比
 
         try:
+            logger.info(f"Starting installation to disks: {destination_disks}")
             await install(
                 self._select_disks(disks, destination_disks),
                 self._select_disks(disks, wipe_disks),
                 self._callback,
             )
+            logger.info("Installation completed successfully")
         except InstallError as e:
+            logger.error(f"Installation failed: {e.message}")
             await dialog_msgbox(_("installation_error"), e.message)
             return False
 
@@ -265,16 +279,20 @@ class InstallerMenu:
         return None
 
     async def _shell(self):
+        logger.info("User exited to shell")
         os._exit(1)
 
     async def _reboot(self):
+        logger.info("System reboot requested")
         process = await asyncio.create_subprocess_exec("reboot")
         await process.communicate()
 
     async def _shutdown(self):
+        logger.info("System shutdown requested")
         process = await asyncio.create_subprocess_exec("shutdown", "now")
         await process.communicate()
 
     def _callback(self, progress, message):
+        logger.info(f"[{int(progress * 100)}%] {message}")
         sys.stdout.write(f"[{int(progress * 100)}%] {message}\n")
         sys.stdout.flush()

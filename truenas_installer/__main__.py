@@ -8,6 +8,7 @@ import json
 from .installer import Installer
 from .installer_menu import InstallerMenu
 
+from .logger import logger
 
 def main():
     parser = argparse.ArgumentParser()
@@ -20,11 +21,13 @@ def main():
     try:
         with open("/.data/.version") as f:
             version = f.read().strip()
+            logger.info(f"Version: {version}")
 
         with open("/.data/.vendor") as f:
             vendor = json.loads(f.read()).get("name", "OneNAS")
-    except Exception:
-        pass
+            logger.info(f"Vendor: {vendor}")
+    except Exception as e:
+        logger.warning(f"Failed to read version/vendor info: {e}")
 
     # dmi = parse_dmi()
     # tn_model = get_chassis_hardware(dmi)
@@ -37,6 +40,7 @@ def main():
         )
 
     else:
+        logger.info("Starting installer menu")
         loop = asyncio.get_event_loop()
         loop.create_task(InstallerMenu(installer).run())
         loop.run_forever()

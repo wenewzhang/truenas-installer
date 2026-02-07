@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import json
 import re
 
+from .logger import logger
 from .utils import run
 
 __all__ = ["list_disks"]
@@ -31,12 +32,14 @@ class Disk:
 
 async def list_disks():
     # need to settle so that lsblk output is stable
+    logger.debug("Running udevadm settle...")
     await run(["udevadm", "settle"])
 
     with open("/etc/mtab") as f:
         mtab = f.read()
 
     disks = []
+    logger.debug("Running lsblk to list block devices...")
     for disk in json.loads(
         (await run(["lsblk", "-b", "-fJ", "-o", "name,fstype,label,rm,size,model"])).stdout
     )["blockdevices"]:
@@ -82,4 +85,6 @@ async def list_disks():
     # and our appliances have nvme boot drives so by putting nvme
     # devices up top in the installer, it provides a convenience
     # for other departments
-    return sorted(disks, key=lambda x: x.name)
+    sorted_disks = sorted(disks, key=lambda x: x.name)
+    logger.debug(f"Found {len(sorted_disks)} disk(s): {[d.name for d in sorted_disks]}")
+    return sorted_disks
