@@ -15,13 +15,13 @@ def main():
 
     args = parser.parse_args()
 
-    with open("/etc/version") as f:
+    with open("/.data/.version") as f:
         version = f.read().strip()
 
-    vendor = "TrueNAS"
+    vendor = "OneNAS"
     try:
-        with open("/data/.vendor") as f:
-            vendor = json.loads(f.read()).get("name", "TrueNAS")
+        with open("/.data/.vendor") as f:
+            vendor = json.loads(f.read()).get("name", "OneNAS")
     except Exception:
         pass
 

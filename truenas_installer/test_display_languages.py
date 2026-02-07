@@ -29,7 +29,7 @@ def test_language_switching():
     print("-" * 70)
     set_language("en")
     print(f"  当前语言 / Current: {get_language()}")
-    print(f"  主菜单标题 / Main Menu: {_('main_menu_title', vendor='TrueNAS', version='25.04')}")
+    print(f"  主菜单标题 / Main Menu: {_('main_menu_title', vendor='OneNAS', version='25.04')}")
     print(f"  安装/升级 / Install: {_('install_upgrade')}")
     print(f"  选择目标设备 / Choose Destination: {_('choose_destination')}")
     print(f"  安装成功 / Install Success: {_('installation_succeeded')}")
@@ -40,7 +40,7 @@ def test_language_switching():
     print("-" * 70)
     set_language("zh")
     print(f"  当前语言 / Current: {get_language()}")
-    print(f"  主菜单标题 / Main Menu: {_('main_menu_title', vendor='TrueNAS', version='25.04')}")
+    print(f"  主菜单标题 / Main Menu: {_('main_menu_title', vendor='OneNAS', version='25.04')}")
     print(f"  安装/升级 / Install: {_('install_upgrade')}")
     print(f"  选择目标设备 / Choose Destination: {_('choose_destination')}")
     print(f"  安装成功 / Install Success: {_('installation_succeeded')}")
@@ -52,11 +52,11 @@ def test_language_switching():
     
     set_language("en")
     print(f"  [EN] {_('erase_partitions', disks='sda, sdb')}")
-    print(f"  [EN] {_('installation_succeeded_msg', vendor='TrueNAS', disks='sda')}")
+    print(f"  [EN] {_('installation_succeeded_msg', vendor='OneNAS', disks='sda')}")
     
     set_language("zh")
     print(f"  [ZH] {_('erase_partitions', disks='sda, sdb')}")
-    print(f"  [ZH] {_('installation_succeeded_msg', vendor='TrueNAS', disks='sda')}")
+    print(f"  [ZH] {_('installation_succeeded_msg', vendor='OneNAS', disks='sda')}")
     
     return True
 

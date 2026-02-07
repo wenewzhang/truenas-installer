@@ -34,7 +34,7 @@ set_language("en")  # 切换到英文
 current_lang = get_language()  # 返回 "zh" 或 "en"
 
 # 使用翻译
-title = _("main_menu_title", vendor="TrueNAS", version="25.04")
+title = _("main_menu_title", vendor="OneNAS", version="25.04")
 message = _("installation_succeeded")
 ```
 
