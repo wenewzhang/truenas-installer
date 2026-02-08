@@ -16,7 +16,9 @@ __all__ = ["InstallError", "install"]
 ONE_POOL = "one-pool"
 
 
-async def install(destination_disks: list[Disk], wipe_disks: list[Disk], callback: Callable):
+async def install(destination_disks: list[Disk], wipe_disks: list[Disk],system_pct: int, min_system_size:str, callback: Callable):
+    boot_mode = check_boot_mode()
+    logger.info(f"boot mode: {boot_mode}")                     
     with installation_lock:
         try:
             if not os.path.exists("/etc/hostid"):
@@ -24,7 +26,10 @@ async def install(destination_disks: list[Disk], wipe_disks: list[Disk], callbac
 
             for disk in destination_disks:
                 callback(0, f"Formatting disk {disk.name}")
-                await format_disk(disk, callback)
+                if boot_mode == "UEFI":
+                    await format_disk_uefi(disk, system_pct, min_system_size, callback)
+                else:
+                    await format_disk_bios(disk, system_pct, min_system_size, callback)
 
             for disk in wipe_disks:
                 callback(0, f"Wiping disk {disk.name}")
@@ -64,7 +69,58 @@ async def wipe_disk(disk: Disk, callback: Callable):
 
     await run(["sgdisk", "-Z", disk.device], check=False)
 
+async def format_disk_uefi(disk: Disk, system_pct: int, min_system_size:str, callback: Callable):
+    await wipe_disk(disk, callback)
 
+    await run(["sgdisk", "-n1:1m:+512m", "-t", "1:ef00", disk.device])
+    if system_pct == 100:
+        await run(["sgdisk", "-n2:0:0", "-t2:BF01", disk.device])        
+    else:
+        await run(["sgdisk", f"-n2:0+{min_system_size}", "-t2:BF00", disk.device])        
+        await run(["sgdisk", "-n3:0:0", "-t3:BF01", disk.device])
+        
+
+    # Bad hardware is bad, but we've seen a few users
+    # state that by the time we run `parted` command
+    # down below OR the caller of this function tries
+    # to do something with the partition(s), they won't
+    # be present. This is almost _exclusively_ related
+    # to bad hardware, but we will wait up to 30 seconds
+    # for the partitions to show up in sysfs.
+    disk_parts = await get_partitions(disk.device, [1, 2, 3], tries=30)
+    for partnum, part_device in disk_parts.items():
+        logger.info("format_disk_uefi disk_parts:%s",disk_parts)
+        if part_device is None:
+            raise InstallError(f"Failed to find partition number {partnum} on {disk.name}")
+        
+
+async def format_disk_bios(disk: Disk, system_pct: int, min_system_size:str, callback: Callable):
+    await wipe_disk(disk, callback)
+
+    # await run(["sgdisk", "-n1:1m:+512m", "-t", "1:ef00", disk.device])
+    # 对应原始指令: sgdisk -n 1:2048:+512MiB -t 1:8300 -A 1:set:2
+    await run(["sgdisk","-n1:2048:+512m","-t1:8300","-A1:set:2",disk.device])
+    # sgdisk -n 1:2048:+512MiB -t 1:8300 -A 1:set:2 "${POOL_DISK}"
+    if system_pct == 100:
+        await run(["sgdisk", "-n2:0:0", "-t2:BF01", disk.device])        
+    else:
+        await run(["sgdisk", f"-n2:0+{min_system_size}", "-t2:BF00", disk.device])        
+        await run(["sgdisk", "-n3:0:0", "-t3:BF01", disk.device])
+        
+
+    # Bad hardware is bad, but we've seen a few users
+    # state that by the time we run `parted` command
+    # down below OR the caller of this function tries
+    # to do something with the partition(s), they won't
+    # be present. This is almost _exclusively_ related
+    # to bad hardware, but we will wait up to 30 seconds
+    # for the partitions to show up in sysfs.
+    disk_parts = await get_partitions(disk.device, [1, 2, 3], tries=30)
+    for partnum, part_device in disk_parts.items():
+        logger.info("format_disk_bios disk_parts:%s",disk_parts)
+        if part_device is None:
+            raise InstallError(f"Failed to find partition number {partnum} on {disk.name}")
+        
 async def format_disk(disk: Disk, callback: Callable):
     await wipe_disk(disk, callback)
 
