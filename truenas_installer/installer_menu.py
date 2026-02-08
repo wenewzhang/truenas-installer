@@ -15,7 +15,7 @@ from .dialog import (
 )
 from .disks import Disk, list_disks
 from .exception import InstallError
-from .install import install
+from .install import install, check_boot_mode
 from .i18n import _, set_language, get_available_languages, get_language
 from .logger import logger
 
@@ -236,6 +236,15 @@ class InstallerMenu:
                             system_partition_percentage = percentage
                             break
                         # 用户选择重新输入，继续循环
+                        boot_mode = check_boot_mode()
+                        logger.info(f"boot mode: {boot_mode}")
+
+                        if boot_mode == "UEFI":
+                            # 这里可以执行创建 EFI 分区 (ef00) 的逻辑
+                            pass
+                        else:
+                            # 这里执行创建传统启动分区 (8300) 的逻辑
+                            pass
                     else:
                         await dialog_msgbox(_("error"), _("percentage_range_error"))
                 except ValueError:

@@ -169,3 +169,9 @@ async def run_installer(disks, callback):
                 raise InstallError(result or f"Abnormal installer process termination with code {process.returncode}")
         finally:
             await run(["umount", "-f", src])
+
+def check_boot_mode():
+    if os.path.exists("/sys/firmware/efi"):
+        return "UEFI"
+    else:
+        return "BIOS"
