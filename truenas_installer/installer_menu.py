@@ -213,6 +213,13 @@ class InstallerMenu:
                         remaining_size = total_size - system_size
                         remaining_size_str = humanfriendly.format_size(remaining_size, binary=True)
                         
+                        # 获取最小容量硬盘并按百分比计算
+                        min_disk = min(selected_disks, key=lambda d: d.size)
+                        min_disk_size = min_disk.size
+                        min_disk_size_str = humanfriendly.format_size(min_disk_size, binary=True)
+                        min_disk_system_size = min_disk_size * percentage // 100
+                        min_disk_system_size_str = humanfriendly.format_size(min_disk_system_size, binary=True)
+                        
                         # 显示计算结果并让用户确认
                         confirm_text = _(
                             "partition_size_preview",
@@ -220,6 +227,9 @@ class InstallerMenu:
                             percentage=percentage,
                             system_size=system_size_str,
                             remaining_size=remaining_size_str,
+                            min_disk_name=min_disk.name,
+                            min_disk_size=min_disk_size_str,
+                            min_disk_system_size=min_disk_system_size_str,
                         )
                         
                         if await dialog_yesno(_("confirm_partition_size"), confirm_text):

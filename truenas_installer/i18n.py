@@ -75,7 +75,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "percentage_range_error": "Percentage must be between 1 and 100.",
         "percentage_invalid_error": "Please enter a valid number.",
         "confirm_partition_size": "Confirm Partition Size",
-        "partition_size_preview": "Total capacity: {total_size}\n\nSystem partition: {percentage}% = {system_size}\nRemaining space: {remaining_size}\n\nIs this correct?",
+        "partition_size_preview": "Total capacity: {total_size}\n\nSystem partition: {percentage}% = {system_size}\nRemaining space: {remaining_size}\n\nSmallest disk: {min_disk_name} ({min_disk_size})\nSystem partition on smallest disk: {min_disk_system_size}\n\nIs this correct?",
         
         # 按钮和通用
         "yes": "Yes",
@@ -150,7 +150,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "percentage_range_error": "百分比必须在 1 到 100 之间。",
         "percentage_invalid_error": "请输入有效的数字。",
         "confirm_partition_size": "确认分区大小",
-        "partition_size_preview": "总容量: {total_size}\n\n系统分区: {percentage}% = {system_size}\n剩余空间: {remaining_size}\n\n是否正确?",
+        "partition_size_preview": "总容量: {total_size}\n\n系统分区: {percentage}% = {system_size}\n剩余空间: {remaining_size}\n\n最小硬盘: {min_disk_name} ({min_disk_size})\n该硬盘系统分区: {min_disk_system_size}\n\n是否正确?",
         
         # 按钮和通用
         "yes": "是",
