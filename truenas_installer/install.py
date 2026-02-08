@@ -36,7 +36,7 @@ async def install(destination_disks: list[Disk], wipe_disks: list[Disk],system_p
                 if boot_mode == "UEFI":
                     await format_disk_uefi(disk, system_pct, min_system_size_str, callback)
                 else:
-                    await format_disk_bios(disk, system_pct, min_system_size_str, callback)
+                    await format_disk_bios2(disk, system_pct, min_system_size_str, callback)
 
             # for disk in wipe_disks:
             #     callback(0, f"Wiping disk {disk.name}")
@@ -109,9 +109,9 @@ async def format_disk_bios(disk: Disk, system_pct: int, min_system_size:str, cal
     await run(["sgdisk","-n1:2048:+512m","-t1:8300","-A1:set:2",disk.device])
     # sgdisk -n 1:2048:+512MiB -t 1:8300 -A 1:set:2 "${POOL_DISK}"
     if system_pct == 100:
-        await run(["sgdisk", "-n2:0:0", "-t2:BF01", disk.device])        
+        await run(["sgdisk", "-n2:0:0", "-t2:8300", disk.device])        
     else:
-        await run(["sgdisk", f"-n2:0:+{min_system_size}", "-t2:BF00", disk.device])        
+        await run(["sgdisk", f"-n2:0:+{min_system_size}", "-t2:8300", disk.device])        
         await run(["sgdisk", "-n3:0:0", "-t3:BF01", disk.device])
         
 
@@ -127,7 +127,55 @@ async def format_disk_bios(disk: Disk, system_pct: int, min_system_size:str, cal
         logger.info("format_disk_bios disk_parts:%s",disk_parts)
         if part_device is None:
             raise InstallError(f"Failed to find partition number {partnum} on {disk.name}")
+
+async def format_disk_bios2(disk: Disk, system_pct: int, min_system_size: str, callback: Callable):
+    await wipe_disk(disk, callback)
+
+    # sfdisk_input = f"""label: dos
+    # start=1MiB, size=512MiB, type=83, bootable
+    # start=513MiB, size=+, type=83
+    # """
+    # try:
+    #     # 执行 sfdisk 命令
+    #     # input 参数会自动处理 stdin 的传递
+    #     result = subprocess.run(
+    #         ["sfdisk", {disk.device}],
+    #         input=sfdisk_input,
+    #         text=True,          # 确保以文本模式处理输入输出
+    #         capture_output=True, # 捕获错误信息以便调试
+    #         check=True           # 如果执行失败则抛出异常
+    #     )
+    #     logger.info(f"sfdisk success: {disk.device}")
         
+    # except subprocess.CalledProcessError as e:
+    #     logger.error(f"sfdisk fail: {disk.device}")
+    # 使用 sfdisk 创建 MBR 分区表 (dos)
+    # 第一个分区：1MiB 开始，512MiB 大小，Linux 类型(83)，可引导
+    if system_pct == 100:
+        bash_cmd = f"""cat <<'EOF' | sfdisk "{disk.device}"
+label: dos
+start=1MiB, size=512MiB, type=83, bootable
+start=513MiB, size=+, type=83
+EOF"""
+        part_nums = [1, 2]
+    else:
+        bash_cmd = f"""cat <<'EOF' | sfdisk "{disk.device}"
+label: dos
+start=1MiB, size=512MiB, type=83, bootable
+start=513MiB, size={min_system_size}, type=83
+start=513MiB+{min_system_size}, size=+, type=83
+EOF"""
+        part_nums = [1, 2, 3]
+
+    await run(["bash", "-c", bash_cmd])
+
+    # 等待分区出现在 sysfs 中（最多等待 30 秒）
+    disk_parts = await get_partitions(disk.device, part_nums, tries=30)
+    for partnum, part_device in disk_parts.items():
+        logger.info("format_disk_bios2 disk_parts:%s", disk_parts)
+        if part_device is None:
+            raise InstallError(f"Failed to find partition number {partnum} on {disk.name}")
+
 async def format_disk(disk: Disk, callback: Callable):
     await wipe_disk(disk, callback)
 

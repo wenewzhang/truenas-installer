@@ -174,6 +174,10 @@ class InstallerMenu:
         selected_disks = [d for d in disks if d.name in destination_disks]
         total_size = sum(d.size for d in selected_disks)
         total_size_str = humanfriendly.format_size(total_size, binary=True)
+        # 获取最小容量硬盘并按百分比计算
+        min_disk = min(selected_disks, key=lambda d: d.size)
+        min_disk_size = min_disk.size
+        min_disk_size_str = humanfriendly.format_size(min_disk_size, binary=True)
 
         # 让用户选择分区方式
         partition_choice = await dialog_radiolist(
@@ -191,7 +195,9 @@ class InstallerMenu:
         # 存储用户的选择和系统分区大小
         use_full_disk = (partition_choice == "full")
         system_partition_percentage = 100  # 默认使用全部
-
+        min_disk_system_size = min_disk_size * system_partition_percentage // 100
+        min_disk_system_size_str = humanfriendly.format_size(min_disk_system_size, binary=True)
+        
         if not use_full_disk:
             # 用户选择按百分比，询问百分比
             while True:
@@ -213,13 +219,9 @@ class InstallerMenu:
                         remaining_size = total_size - system_size
                         remaining_size_str = humanfriendly.format_size(remaining_size, binary=True)
                         
-                        # 获取最小容量硬盘并按百分比计算
-                        min_disk = min(selected_disks, key=lambda d: d.size)
-                        min_disk_size = min_disk.size
-                        min_disk_size_str = humanfriendly.format_size(min_disk_size, binary=True)
                         min_disk_system_size = min_disk_size * percentage // 100
-                        min_disk_system_size_str = humanfriendly.format_size(min_disk_system_size, binary=True)
-                        
+                        min_disk_system_size_str = humanfriendly.format_size(min_disk_system_size, binary=True)                        
+                                                
                         # 显示计算结果并让用户确认
                         confirm_text = _(
                             "partition_size_preview",
