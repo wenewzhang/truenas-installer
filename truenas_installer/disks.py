@@ -7,7 +7,7 @@ from .utils import run
 
 __all__ = ["list_disks"]
 
-MIN_DISK_SIZE = 8_000_000_000
+MIN_DISK_SIZE = 2_000_000_000
 
 
 @dataclass

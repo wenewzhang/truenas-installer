@@ -16,24 +16,31 @@ __all__ = ["InstallError", "install"]
 ONE_POOL = "one-pool"
 
 
-async def install(destination_disks: list[Disk], wipe_disks: list[Disk],system_pct: int, min_system_size:str, callback: Callable):
+async def install(destination_disks: list[Disk], wipe_disks: list[Disk],system_pct: int, min_system_size:int, callback: Callable):
     boot_mode = check_boot_mode()
-    logger.info(f"boot mode: {boot_mode}")                     
+    logger.info(f"boot mode: {boot_mode}")   
+    min_system_size_mib = min_system_size // (1024 * 1024)
+    min_system_size_str = f"{min_system_size_mib}m"  # 例如: "+8192m"
+                  
     with installation_lock:
         try:
             if not os.path.exists("/etc/hostid"):
                 await run(["zgenhostid"])
 
             for disk in destination_disks:
-                callback(0, f"Formatting disk {disk.name}")
-                if boot_mode == "UEFI":
-                    await format_disk_uefi(disk, system_pct, min_system_size, callback)
-                else:
-                    await format_disk_bios(disk, system_pct, min_system_size, callback)
-
-            for disk in wipe_disks:
                 callback(0, f"Wiping disk {disk.name}")
                 await wipe_disk(disk, callback)
+
+            for disk in destination_disks:
+                callback(0, f"Formatting disk {disk.name}")
+                if boot_mode == "UEFI":
+                    await format_disk_uefi(disk, system_pct, min_system_size_str, callback)
+                else:
+                    await format_disk_bios(disk, system_pct, min_system_size_str, callback)
+
+            # for disk in wipe_disks:
+            #     callback(0, f"Wiping disk {disk.name}")
+            #     await wipe_disk(disk, callback)
 
             disk_parts = list()
             part_num = 3

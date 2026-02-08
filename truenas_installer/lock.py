@@ -7,7 +7,7 @@ __all__ = ["installation_lock"]
 
 class InstallationLock:
     def __init__(self):
-        self.path = pathlib.Path("/run/truenas_installer.lock")
+        self.path = pathlib.Path("/run/onenas_installer.lock")
 
     def locked(self):
         return self.path.exists()
