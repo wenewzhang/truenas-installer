@@ -7,6 +7,7 @@ from typing import Callable
 
 from .disks import Disk
 from .exception import InstallError
+from .i18n import _
 from .lock import installation_lock
 from .logger import logger
 from .utils import get_partitions, run
@@ -28,11 +29,11 @@ async def install(destination_disks: list[Disk], wipe_disks: list[Disk], system_
                 await run(["zgenhostid"])
 
             for disk in destination_disks:
-                callback(0, f"Wiping disk {disk.name}")
+                callback(0, _("wiping_disk", disk=disk.name))
                 await wipe_disk(disk, callback)
 
             for disk in destination_disks:
-                callback(0, f"Formatting disk {disk.name}")
+                callback(0, _("formatting_disk", disk=disk.name))
                 if boot_mode == "UEFI":
                     await format_disk_uefi(disk, system_pct, min_system_size_str, callback)
                 else:
@@ -53,7 +54,7 @@ async def install(destination_disks: list[Disk], wipe_disks: list[Disk], system_
                 else:
                     disk_parts.append(found)
 
-            callback(0, "Creating boot pool")
+            callback(0, _("creating_boot_pool"))
             await create_one_pool(disk_parts)
             try:
                 await run_installer(
@@ -72,11 +73,11 @@ async def wipe_disk(disk: Disk, callback: Callable):
     for zfs_member in disk.zfs_members:
         if (result := await run(["zpool", "labelclear", "-f", f"/dev/{zfs_member.name}"],
                                 check=False)).returncode != 0:
-            callback(0, f"Warning: unable to wipe ZFS label from {zfs_member.name}: {result.stderr.rstrip()}")
+            callback(0, _("warning_wipe_zfs_label", device=zfs_member.name, error=result.stderr.rstrip()))
         pass
 
     if (result := await run(["wipefs", "-a", disk.device], check=False)).returncode != 0:
-        callback(0, f"Warning: unable to wipe partition table for {disk.name}: {result.stderr.rstrip()}")
+        callback(0, _("warning_wipe_partition_table", disk=disk.name, error=result.stderr.rstrip()))
 
     await run(["sgdisk", "-Z", disk.device], check=False)
 
