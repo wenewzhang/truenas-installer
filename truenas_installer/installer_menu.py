@@ -255,6 +255,7 @@ class InstallerMenu:
                 self._select_disks(disks, wipe_disks),
                 system_partition_percentage,
                 min_disk_system_size,
+                self.installer.version,
                 self._callback,
             )
             logger.info("Installation completed successfully")

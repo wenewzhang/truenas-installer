@@ -16,7 +16,7 @@ __all__ = ["InstallError", "install"]
 ONE_POOL = "one-pool"
 
 
-async def install(destination_disks: list[Disk], wipe_disks: list[Disk],system_pct: int, min_system_size:int, callback: Callable):
+async def install(destination_disks: list[Disk], wipe_disks: list[Disk], system_pct: int, min_system_size: int, version: str, callback: Callable):
     boot_mode = check_boot_mode()
     min_system_size_mib = min_system_size // (1024 * 1024)
     min_system_size_str = f"{min_system_size_mib}m"  # 例如: "+8192m"
@@ -52,7 +52,7 @@ async def install(destination_disks: list[Disk], wipe_disks: list[Disk],system_p
                     disk_parts.append(found)
 
             callback(0, "Creating boot pool")
-            await create_one_pool(disk_parts)
+            await create_one_pool(disk_parts, version)
             try:
                 await run_installer(
                     [disk.name for disk in destination_disks],
@@ -188,8 +188,8 @@ async def format_disk(disk: Disk, callback: Callable):
     #     await run(["parted", "-s", disk.device, "disk_set", "pmbr_boot", "on"], check=False)
 
 
-async def create_one_pool(devices,version):
-    bootpool=f"zuti-{version}"
+async def create_one_pool(devices, version):
+    bootpool = f"zuti-{version}"
     await run(
         [
             "zpool", "create", "-f",
@@ -208,6 +208,7 @@ async def create_one_pool(devices,version):
     )
     await run(["zfs", "create", "-o", "mountpoint=none", f"{ONE_POOL}/ROOT"])
     await run(["zfs", "create", "-o", "canmount=noauto", "-o", "mountpoint=/", f"{ONE_POOL}/ROOT/{bootpool}"])
+    await run(["zpool", "set", f"bootfs={ONE_POOL}/ROOT/{bootpool}", ONE_POOL])
 
 
 
